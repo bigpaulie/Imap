@@ -142,11 +142,14 @@ class Imap
     {
         $this->tickle();
 
+        /** @var int $msgno */
+        $msgno = imap_msgno($this->mailbox, $messageId);
+
         // Get message details.
-        $details = imap_headerinfo($this->mailbox, $messageId);
+        $details = imap_headerinfo($this->mailbox, $msgno);
         if ($details) {
             // Get the raw headers.
-            $raw_header = imap_fetchheader($this->mailbox, $messageId);
+            $raw_header = imap_fetchheader($this->mailbox, $msgno);
 
             // Detect whether the message is an autoresponse.
             $autoresponse = $this->detectAutoresponder($raw_header);
@@ -157,9 +160,9 @@ class Imap
             $draft = ($details->Draft == 'X') ? true : false;
 
             // Get the message body.
-            $body = imap_fetchbody($this->mailbox, $messageId, self::SECTION_TEXT_HTML);
+            $body = imap_fetchbody($this->mailbox, $msgno, self::SECTION_TEXT_HTML);
             if (!strlen($body) > 0) {
-                $body = imap_fetchbody($this->mailbox, $messageId, self::SECTION_ALTERNATIVE);
+                $body = imap_fetchbody($this->mailbox, $msgno, self::SECTION_ALTERNATIVE);
             }
 
             /** @var string $encoding */
@@ -217,7 +220,7 @@ class Imap
                 $autoresponse
             );
 
-            return new Message($messageId, $details->subject, $body, $headers);
+            return new Message($msgno, $details->subject, $body, $headers);
         } else {
             throw new ImapException("Message could not be found: " . imap_last_error());
         }
