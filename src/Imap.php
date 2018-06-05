@@ -110,9 +110,7 @@ class Imap {
    *
    * Please see __construct() for parameter info.
    *
-   * @return (empty)
-   *
-   * @throws Exception when IMAP can't connect.
+   * @throws ImapException when IMAP can't connect.
    */
   public function changeLoginInfo($host, $user, $pass, $port, $ssl, $folder) {
     if ($ssl) {
@@ -131,7 +129,7 @@ class Imap {
     if ($mailbox = imap_open($address, $user, $pass)) {
       $this->mailbox = $mailbox;
     } else {
-      throw new Exception("Error: " . imap_last_error());
+      throw new ImapException("Error: " . imap_last_error());
     }
   }
 
@@ -156,14 +154,14 @@ class Imap {
       $autoresponse = $this->detectAutoresponder($raw_header);
 
       // Get some basic variables.
-      $deleted = ($details->Deleted == 'D');
-      $answered = ($details->Answered == 'A');
-      $draft = ($details->Draft == 'X');
+      $deleted = ($details->Deleted == 'D') ? true : false;
+      $answered = ($details->Answered == 'A') ? true : false;
+      $draft = ($details->Draft == 'X') ? true : false;
 
       // Get the message body.
-      $body = imap_fetchbody($this->mailbox, $messageId, 1.2);
+      $body = imap_fetchbody($this->mailbox, $messageId, self::SECTION_TEXT_HTML);
       if (!strlen($body) > 0) {
-        $body = imap_fetchbody($this->mailbox, $messageId, 1);
+        $body = imap_fetchbody($this->mailbox, $messageId, self::SECTION_ALTERNATIVE);
       }
 
       // Get the message body encoding.
@@ -184,24 +182,24 @@ class Imap {
       }
 
       // Build the message.
-      $message = array(
-        'raw_header' => $raw_header,
-        'to' => $details->toaddress,
-        'from' => $details->fromaddress,
-        'cc' => isset($details->ccaddress) ? $details->ccaddress : '',
-        'bcc' => isset($details->bccaddress) ? $details->bccaddress : '',
-        'reply_to' => isset($details->reply_toaddress) ? $details->reply_toaddress : '',
-        'sender' => $details->senderaddress,
-        'date_sent' => $details->date,
-        'subject' => $details->subject,
-        'deleted' => $deleted,
-        'answered' => $answered,
-        'draft' => $draft,
-        'body' => $body,
-        'original_encoding' => $encoding,
-        'size' => $details->Size,
-        'auto_response' => $autoresponse,
-      );
+//      $message = array(
+//        'raw_header' => $raw_header,
+//        'to' => $details->toaddress,
+//        'from' => $details->fromaddress,
+//        'cc' => isset($details->ccaddress) ? $details->ccaddress : '',
+//        'bcc' => isset($details->bccaddress) ? $details->bccaddress : '',
+//        'reply_to' => isset($details->reply_toaddress) ? $details->reply_toaddress : '',
+//        'sender' => $details->senderaddress,
+//        'date_sent' => $details->date,
+//        'subject' => $details->subject,
+//        'deleted' => $deleted,
+//        'answered' => $answered,
+//        'draft' => $draft,
+//        'body' => $body,
+//        'original_encoding' => $encoding,
+//        'size' => $details->Size,
+//        'auto_response' => $autoresponse,
+//      );
 
 
       $headers = new Headers(
@@ -220,13 +218,11 @@ class Imap {
           $autoresponse
       );
 
-      $message = new Message($details->subject, $body, $headers);
+      return new Message($details->subject, $body, $headers);
     }
     else {
       throw new ImapException("Message could not be found: " . imap_last_error());
     }
-
-    return $message;
   }
 
   /**
