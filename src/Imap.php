@@ -24,7 +24,11 @@
  * @author Jeff Geerling (geerlingguy).
  */
 
-namespace JJG;
+namespace bigpaulie\imap;
+
+use bigpaulie\imap\Exceptions\ImapException;
+use bigpaulie\imap\Message\Headers;
+use bigpaulie\imap\Message\Message;
 
 class Imap {
 
@@ -38,6 +42,10 @@ class Imap {
   private $baseAddress;
   private $address;
   private $mailbox;
+
+  const SECTION_TEXT_PLAIN = '1.1';
+  const SECTION_TEXT_HTML = '1.2';
+  const SECTION_ALTERNATIVE = '1';
 
   /**
    * Called when the Imap object is created.
@@ -75,14 +83,14 @@ class Imap {
     $this->changeLoginInfo($host, $user, $pass, $port, $ssl, $folder);
   }
 
-  /**
-   * Change IMAP folders and reconnect to the server.
-   *
-   * @param $folderName
-   *   The name of the folder to change to.
-   *
-   * @return (empty)
-   */
+    /**
+     * Change IMAP folders and reconnect to the server.
+     *
+     * @param $folderName
+     *   The name of the folder to change to.
+     *
+     * @throws ImapException
+     */
   public function changeFolder($folderName) {
     if ($this->ssl) {
       $address = '{' . $this->host . ':' . $this->port . '/imap/ssl}' . $folderName;
@@ -127,34 +135,15 @@ class Imap {
     }
   }
 
-  /**
-   * Returns an associative array with detailed information about a given
-   * message.
-   *
-   * @param $messageId (int)
-   *   Message id.
-   *
-   * @return Associative array with keys (strings unless otherwise noted):
-   *   raw_header
-   *   to
-   *   from
-   *   cc
-   *   bcc
-   *   reply_to
-   *   sender
-   *   date_sent
-   *   subject
-   *   deleted (bool)
-   *   answered (bool)
-   *   draft (bool)
-   *   body
-   *   original_encoding
-   *   size (int)
-   *   auto_response (bool)
-   *
-   * @throws Exception when message with given id can't be found.
-   */
-  public function getMessage($messageId) {
+    /**
+     * Returns detailed information about a given message.
+     *
+     * @param int $messageId
+     *
+     * @return Message
+     * @throws ImapException
+     */
+  public function getMessage(int $messageId):Message {
     $this->tickle();
 
     // Get message details.
@@ -191,7 +180,7 @@ class Imap {
         $body = $this->decode8Bit($body);
       }
       elseif ($encoding == '7BIT') {
-        $body = $this->decode7Bit($body);
+        $body = $this->decodeQuotedPrintable($body);
       }
 
       // Build the message.
@@ -213,9 +202,28 @@ class Imap {
         'size' => $details->Size,
         'auto_response' => $autoresponse,
       );
+
+
+      $headers = new Headers(
+          $details->toaddress,
+          $details->fromaddress,
+          isset($details->ccaddress) ? $details->ccaddress : '',
+          isset($details->bccaddress) ? $details->bccaddress : '',
+          isset($details->reply_toaddress) ? $details->reply_toaddress : '',
+          $details->senderaddress,
+          $details->date,
+          $deleted,
+          $answered,
+          $draft,
+          $encoding,
+          $details->Size,
+          $autoresponse
+      );
+
+      $message = new Message($details->subject, $body, $headers);
     }
     else {
-      throw new Exception("Message could not be found: " . imap_last_error());
+      throw new ImapException("Message could not be found: " . imap_last_error());
     }
 
     return $message;
@@ -231,16 +239,14 @@ class Imap {
    *   will not be deleted until disconnect() is called. Normally, this is a
    *   bad idea, as other message ids will change if a message is deleted.
    *
-   * @return (empty)
-   *
-   * @throws Exception when message can't be deleted.
+   * @throws ImapException when message can't be deleted.
    */
   public function deleteMessage($messageId, $immediate = FALSE) {
     $this->tickle();
 
     // Mark message for deletion.
     if (!imap_delete($this->mailbox, $messageId)) {
-      throw new Exception("Message could not be deleted: " . imap_last_error());
+      throw new ImapException("Message could not be deleted: " . imap_last_error());
     }
 
     // Immediately delete the message if $immediate is TRUE.
@@ -266,12 +272,13 @@ class Imap {
     return imap_mail_move($this->mailbox, $messageRange, '{sslmail.webguyz.net:143/imap}Questionable');
   }
 
-  /**
-   * Returns an associative array with email subjects and message ids for all
-   * messages in the active $folder.
-   *
-   * @return Associative array with message id as key and subject as value.
-   */
+    /**
+     * Returns an associative array with email subjects and message ids for all
+     * messages in the active $folder.
+     *
+     * @return array
+     * @throws ImapException
+     */
   public function getMessageIds() {
     $this->tickle();
 
@@ -293,15 +300,13 @@ class Imap {
     return $messageArray;
   }
 
-  /**
-   * Return an associative array containing the number of recent, unread, and
-   * total messages.
-   *
-   * @return Associative array with keys:
-   *   unread
-   *   recent
-   *   total
-   */
+    /**
+     * Return an associative array containing the number of recent, unread, and
+     * total messages.
+     *
+     * @return array
+     * @throws ImapException
+     */
   public function getCurrentMailboxInfo() {
     $this->tickle();
 
@@ -315,11 +320,12 @@ class Imap {
     return $mailInfo;
   }
 
-  /**
-   * Return an array of objects containing mailbox information.
-   *
-   * @return Array of mailbox names.
-   */
+    /**
+     * Return an array of objects containing mailbox information.
+     *
+     * @return array
+     * @throws ImapException
+     */
   public function getMailboxInfo() {
     $this->tickle();
 
@@ -337,15 +343,15 @@ class Imap {
     return $mailboxes;
   }
 
-  /**
-   * Decodes Base64-encoded text.
-   *
-   * @param $text (string)
-   *   Base64 encoded text to convert.
-   *
-   * @return (string)
-   *   Decoded text.
-   */
+    /**
+     * Decodes Base64-encoded text.
+     *
+     * @param $text (string)
+     *   Base64 encoded text to convert.
+     *
+     * @return string
+     * @throws ImapException
+     */
   public function decodeBase64($text) {
     $this->tickle();
     return imap_base64($text);
@@ -357,8 +363,7 @@ class Imap {
    * @param $text (string)
    *   Quoted printable text to convert.
    *
-   * @return (string)
-   *   Decoded text.
+   * @return string
    */
   public function decodeQuotedPrintable($text) {
     return quoted_printable_decode($text);
@@ -370,8 +375,7 @@ class Imap {
    * @param $text (string)
    *   8-Bit text to convert.
    *
-   * @return (string)
-   *   Decoded text.
+   * @return string
    */
   public function decode8Bit($text) {
     return quoted_printable_decode(imap_8bit($text));
@@ -392,8 +396,8 @@ class Imap {
    * @param $text (string)
    *   7-Bit text to convert.
    *
-   * @return (string)
-   *   Decoded text.
+   * @deprecated
+   * @return string
    */
   public function decode7Bit($text) {
     // If there are no spaces on the first line, assume that the body is
@@ -609,8 +613,6 @@ class Imap {
 
   /**
    * Closes an active IMAP connection.
-   *
-   * @return (empty)
    */
   public function disconnect() {
     // Close the connection, deleting all messages marked for deletion.
@@ -620,25 +622,23 @@ class Imap {
   /**
    * Reconnect to the IMAP server.
    *
-   * @return (empty)
-   *
-   * @throws Exception when IMAP can't reconnect.
+   * @throws ImapException
    */
   private function reconnect() {
     $this->mailbox = imap_open($this->address, $this->user, $this->pass);
     if (!$this->mailbox) {
-      throw new Exception("Reconnection Failure: " . imap_last_error());
+      throw new ImapException("Reconnection Failure: " . imap_last_error());
     }
   }
 
-  /**
-   * Checks to see if the connection is alive. If not, reconnects to server.
-   *
-   * @return (empty)
-   */
+    /**
+     * Checks to see if the connection is alive. If not, reconnects to server.
+     *
+     * @throws ImapException
+     */
   private function tickle() {
     if (!imap_ping($this->mailbox)) {
-        $this->reconnect;
+        $this->reconnect();
     }
   }
 
