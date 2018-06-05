@@ -626,6 +626,7 @@ class Imap
     {
         // Close the connection, deleting all messages marked for deletion.
         imap_close($this->mailbox, CL_EXPUNGE);
+        $this->mailbox = null;
     }
 
     /**
