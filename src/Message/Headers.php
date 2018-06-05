@@ -41,17 +41,17 @@ class Headers
     private $date_sent;
 
     /**
-     * @var string
+     * @var bool
      */
     private $deleted;
 
     /**
-     * @var string
+     * @var bool
      */
     private $answered;
 
     /**
-     * @var string
+     * @var bool
      */
     private $draft;
 
@@ -61,7 +61,7 @@ class Headers
     private $original_encoding;
 
     /**
-     * @var string
+     * @var int
      */
     private $size;
     /**
@@ -93,12 +93,12 @@ class Headers
         string $reply_to,
         string $sender,
         string $date_sent,
-        string $deleted,
-        string $answered,
-        string $draft,
+        bool $deleted,
+        bool $answered,
+        bool $draft,
         string $original_encoding,
-        string $size,
-        string $auto_response
+        int $size,
+        bool $auto_response
     )
     {
         $this->to = $to;
