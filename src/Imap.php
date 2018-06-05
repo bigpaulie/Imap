@@ -180,7 +180,7 @@ class Imap
                     $body = $this->decode8Bit($body);
                     break;
                 case self::ENCODING_QUOTED_7BIT:
-                    $body = $this->decodeQuotedPrintable($body);
+                    $body = $this->decode7Bit($body);
             }
 
             // Build the message.
