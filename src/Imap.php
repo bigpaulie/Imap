@@ -649,7 +649,7 @@ class Imap
      */
     private function tickle()
     {
-        if (null !== $this->mailbox && !imap_ping($this->mailbox)) {
+        if (!is_resource($this->mailbox) || !imap_ping($this->mailbox)) {
             $this->reconnect();
         }
     }
