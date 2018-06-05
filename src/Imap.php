@@ -278,22 +278,7 @@ class Imap
     public function getMessageIds()
     {
         $this->tickle();
-
-        // Fetch overview of mailbox.
-        $number_messages = imap_num_msg($this->mailbox);
-        if ($number_messages) {
-            $overviews = imap_fetch_overview($this->mailbox, "1:" . imap_num_msg($this->mailbox), 0);
-        } else {
-            $overviews = array();
-        }
-        $messageArray = array();
-
-        // Loop through message overviews, build message array.
-        foreach ($overviews as $overview) {
-            $messageArray[$overview->msgno] = $overview->subject;
-        }
-
-        return $messageArray;
+        return imap_sort($this->mailbox, SORTDATE, 1, SE_UID);
     }
 
     /**
@@ -546,7 +531,7 @@ class Imap
      */
     public function getStructure($messageId)
     {
-        return imap_fetchstructure($this->mailbox, $messageId);
+        return imap_fetchstructure($this->mailbox, $messageId, FT_UID);
     }
 
     /**
