@@ -180,6 +180,7 @@ class Imap
                     $body = $this->decode8Bit($body);
                     break;
                 case self::ENCODING_QUOTED_7BIT:
+                    $body = mb_convert_encoding($body, 'UTF-8');
                     break;
             }
 
