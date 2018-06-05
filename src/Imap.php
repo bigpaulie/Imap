@@ -217,7 +217,7 @@ class Imap
                 $autoresponse
             );
 
-            return new Message($details->subject, $body, $headers);
+            return new Message($messageId, $details->subject, $body, $headers);
         } else {
             throw new ImapException("Message could not be found: " . imap_last_error());
         }
