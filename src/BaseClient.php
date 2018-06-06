@@ -262,9 +262,11 @@ abstract class BaseClient
      *
      * @return (bool)
      *   Returns TRUE on success, FALSE on failure.
+     * @throws ImapException
      */
     public function moveMessage($messageId, $folder)
     {
+        $this->tickle();
         $messageRange = $messageId . ':' . $messageId;
         return imap_mail_move($this->mailbox, $messageRange, $folder);
     }
@@ -275,9 +277,11 @@ abstract class BaseClient
      * @param int $messageId
      * @param string $folder
      * @return bool
+     * @throws ImapException
      */
     public function copyMessage(int $messageId, string $folder):bool
     {
+        $this->tickle();
         $messageRange = $messageId . ':' . $messageId;
         return imap_mail_copy($this->mailbox, $messageRange, $folder);
     }
