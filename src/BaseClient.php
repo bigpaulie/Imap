@@ -177,7 +177,7 @@ abstract class BaseClient
                     $body = $this->decode8Bit($body);
                     break;
                 case self::ENCODING_QUOTED_7BIT:
-                    $body = $this->decode7Bit($body);
+                    $body = "encoding issue";
                     break;
             }
 
