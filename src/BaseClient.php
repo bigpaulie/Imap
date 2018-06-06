@@ -174,10 +174,10 @@ abstract class BaseClient
                     $body = quoted_printable_decode($body);
                     break;
                 case self::ENCODING_QUOTED_8BIT:
-                    $body = $this->decode8Bit($body);
+                    $body = quoted_printable_decode(imap_8bit($body));
                     break;
                 case self::ENCODING_QUOTED_7BIT:
-                    $body = "encoding issue";
+                    $body = quoted_printable_decode(imap_utf8($body));
                     break;
             }
 
