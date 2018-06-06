@@ -2,14 +2,13 @@
 
 namespace bigpaulie\imap\Message;
 
-use bigpaulie\imap\Interfaces\MessageIteratorInterface;
 
 
 /**
  * Class MessageIterator
  * @package bigpaulie\imap\Message
  */
-class MessageIterator extends \ArrayIterator implements MessageIteratorInterface
+class MessageIterator extends \ArrayIterator
 {
     /**
      * MessageIterator constructor.
