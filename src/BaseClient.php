@@ -168,10 +168,10 @@ abstract class BaseClient
             // Decode body into plaintext (8bit, 7bit, and binary are exempt).
             switch ($encoding) {
                 case self::ENCODING_BASE64:
-                    $body = $this->decodeBase64($body);
+                    $body = base64_decode($body);
                     break;
                 case self::ENCODING_QUOTED_PRINTABLE:
-                    $body = $this->decodeQuotedPrintable($body);
+                    $body = quoted_printable_decode($body);
                     break;
                 case self::ENCODING_QUOTED_8BIT:
                     $body = $this->decode8Bit($body);
