@@ -1,6 +1,7 @@
 {
     "name": "bigpaulie/imap",
     "description": "A PHP wrapper class for PHP's IMAP-related email handling functions.",
+    "type": "library",
     "keywords": ["imap","php","wrapper"],
     "license": "MIT",
     "authors": [

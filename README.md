@@ -1,23 +1,19 @@
-<img src="http://github.com/geerlingguy/Imap/raw/1.x/Resources/Imap-Logo.png" alt="IMAP for PHP Logo" />
-
 # Imap
 
-A PHP wrapper class for PHP's IMAP-related email handling functions.
+This library is an improvement of [Jeff Geerling's](https://github.com/geerlingguy/Imap) project tailored specifically 
+for my needs at the moment.
 
-This class includes many convenience methods to help take the headache out of
-dealing with emails in PHP. For example, email handling method names make more
-sense (e.g. `getMessage`, `deleteMessage`, and `moveMessage` along with a
-message id, rather than passing around IMAP streams, using many
-difficult-to-remember `imap_*` functions).
+Keep in mind that this is still a work in progress so radical changes may occurr in time.
 
-Also, this class adds some convenient helpful information to emails, like the
-full message header (in `raw_header`), and whether or not the email was sent by
-an autoresponder (see `detectAutoresponder` for details).
-
-If you have any issues or feature suggestions, please post a new issue on
-GitHub.
+## Installation 
+You can install this library via composer by running the command bellow or you can clone the repository.
+```bash
+composer require bigpaulie/imap
+```
 
 ## Usage
+
+**A mailbox in the context of this library is referring to a directory of your email account.**
 
 Connect to an IMAP account by creating a new Imap object with the required
 parameters:
@@ -29,49 +25,109 @@ $pass = '12345';
 $port = 993;
 $ssl = true;
 $folder = 'INBOX';
-$mailbox = new Imap($host, $user, $pass, $port, $ssl, $folder);
+$server = new Imap($host, $user, $pass, $port, $ssl, $folder);
 ```
 
-Get a list of all mailboxes:
+##### Obtain a mailbox object
 
 ```php
-$mailbox->getMailboxInfo();
+/** @var Mailbox $mailbox */
+$mailbox = $server->getMailbox();
 ```
 
-Get an array of message counts (recent, unread, and total):
+If you want to access another directory 
+```php
+/** @var Mailbox $mailbox */
+$mailbox = $server->getMailbox('SPAM');
+```
+
+##### Mailbox info
+```php
+/** @var array $info */
+$info = $mailbox->getInfo();
+```
+
+##### Obtain a list of messages within a specific mailbox
+```php
+/** @var Message[] $messages */
+$messages = $mailbox->getMessages();
+```
+You can then iterate through the array of messages
+```php
+/** @var Message $message */
+foreach ($messages as $message) {
+    $subject = $message->getSubject();
+    $messageBody = $message->getBody();
+}
+```
+
+##### Create a search criteria 
+You can obtain only certain messages if you want to.
+
+Only undeleted messages
 
 ```php
-$mailbox->getCurrentMailboxInfo();
-```
+/** @var Search $criteria */
+$criteria = new Search();
+$criteria->setCriteria(Search::UNDELETED);
 
-Get an associative array of message ids and subjects:
+/** @var Message[] $messages */
+$messages = $mailbox->getMessages($criteria);
+```
+You can add multiple search criterias for example :
 
 ```php
-$mailbox->getMessageIds();
+/** @var Search $criteria */
+$criteria = new Search();
+$criteria->setCriteria(Search::UNDELETED);
+$criteria->setCriteria(Search::FROM, "John Doe");
+$criteria->setCriteria(Search::KEYWORD, "candy");
+
+/** @var Message[] $messages */
+$messages = $mailbox->getMessages($criteria);
 ```
 
-Load details for a message by id.
-
+Search criterias can be chained together:
 ```php
-$id = 2;
-$mailbox->getMessage($id);
+/** @var Search $criteria */
+$criteria = new Search();
+$criteria->setCriteria(Search::UNDELETED)
+    ->setCriteria(Search::FROM, "John Doe")
+    ->setCriteria(Search::KEYWORD, "candy");
+
+/** @var Message[] $messages */
+$messages = $mailbox->getMessages($criteria);
 ```
 
-Delete a message by id.
-
+##### Moving messages 
+You can move messages from one mailbox to another very easily
 ```php
-$id = 2;
-$mailbox->deleteMessage($id);
+if ($mailbox->moveMessage($message, 'SPAM')) {
+    echo "Message moved successfuly";
+}
 ```
 
-Disconnect from the server (necessary after deleting or moving messages):
-
+##### Copying messages
+Copying messages is as easy as moving them
 ```php
-$mailbox->disconnect();
+if ($mailbox->copyMessage($message, 'SPAM')) {
+    echo "Message moved successfuly";
+}
 ```
 
-More methods and documentation can be found in the Imap.php class file.
+##### Deleting messages
+```php
+$mailbox->deleteMessage($message);
+```
 
-## License
+##### Disconnecting from the server
+```php
+$server->disconnect();
+```
 
-Imap is licensed under the MIT (Expat) license. See included LICENSE.md.
+### Contributions
+If you want to make a contribution and improve the library or you noticed a bug you are more than welcome to do so.
+
+For contributors just fork, code and submit a pull request.
+
+**Please maintain the coding style and testing patterns.**

@@ -7,6 +7,7 @@ use bigpaulie\imap\Exceptions\ImapException;
 use bigpaulie\imap\Interfaces\MailboxInterface;
 use bigpaulie\imap\Message\Message;
 use bigpaulie\imap\Message\MessageIterator;
+use bigpaulie\imap\Message\Search;
 
 /**
  * Class Mailbox
@@ -40,16 +41,17 @@ class Mailbox implements MailboxInterface
     /**
      * Get messages.
      *
+     * @param Search|null $search
      * @return MessageIterator
      * @throws ImapException
      */
-    public function getMessages(): MessageIterator
+    public function getMessages(Search $search = null): MessageIterator
     {
         /** @var Message[] $messages */
         $messages = [];
 
         /** @var int[] $messageIds */
-        $messageIds = $this->resource->getMessageIds();
+        $messageIds = $this->resource->getMessageIds($search);
         foreach ($messageIds as $id) {
             $messages[] = $this->resource->getMessage($id);
         }
