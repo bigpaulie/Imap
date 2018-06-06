@@ -177,7 +177,7 @@ abstract class BaseClient
                     $body = $this->decode8Bit($body);
                     break;
                 case self::ENCODING_QUOTED_7BIT:
-                    $body = imap_utf8($body);
+                    $body = $this->decode7Bit($body);
                     break;
             }
 
