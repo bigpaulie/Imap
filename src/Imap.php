@@ -30,17 +30,55 @@ use bigpaulie\imap\Exceptions\ImapException;
 use bigpaulie\imap\Message\Headers;
 use bigpaulie\imap\Message\Message;
 
+/**
+ * Class Imap
+ * @package bigpaulie\imap
+ */
 class Imap
 {
-    private $host;
-    private $user;
-    private $pass;
+    /**
+     * @var string
+     */
+    private $hostname;
+
+    /**
+     * @var string
+     */
+    private $username;
+
+    /**
+     * @var string
+     */
+    private $password;
+
+    /**
+     * @var int
+     */
     private $port;
+
+    /**
+     * @var string
+     */
     private $folder;
+
+    /**
+     * @var bool
+     */
     private $ssl;
 
+    /**
+     * @var string
+     */
     private $baseAddress;
+
+    /**
+     * @var string
+     */
     private $address;
+
+    /**
+     * @var resource
+     */
     private $mailbox;
 
     const SECTION_TEXT_PLAIN = '1.1';
@@ -54,44 +92,49 @@ class Imap
 
     /**
      * Imap constructor.
-     * @param $host
-     * @param $user
-     * @param $pass
-     * @param $port
+     * @param string $hostname
+     * @param string $username
+     * @param string $password
+     * @param int $port
      * @param bool $ssl
      * @param string $folder
      * @throws ImapException
      */
-    public function __construct($host, $user, $pass, $port, $ssl = true, $folder = 'INBOX')
+    public function __construct(
+        string $hostname,
+        string $username,
+        string $password,
+        int $port,
+        bool $ssl = true,
+        string $folder = 'INBOX'
+    )
     {
-        if ((!isset($host)) || (!isset($user)) || (!isset($pass)) || (!isset($port))) {
-            throw new Exception("Error: All Constructor values require a non NULL input.");
+        if ((!isset($hostname)) || (!isset($username)) || (!isset($password)) || (!isset($port))) {
+            throw new ImapException("Error: All Constructor values require a non NULL input.");
         }
 
-        $this->host = $host;
-        $this->user = $user;
-        $this->pass = $pass;
+        $this->hostname = $hostname;
+        $this->username = $username;
+        $this->password = $password;
         $this->port = $port;
         $this->folder = $folder;
         $this->ssl = $ssl;
 
-        $this->changeLoginInfo($host, $user, $pass, $port, $ssl, $folder);
+        $this->changeLoginInfo($hostname, $username, $password, $port, $ssl, $folder);
     }
 
     /**
      * Change IMAP folders and reconnect to the server.
      *
      * @param $folderName
-     *   The name of the folder to change to.
-     *
      * @throws ImapException
      */
     public function changeFolder($folderName)
     {
         if ($this->ssl) {
-            $address = '{' . $this->host . ':' . $this->port . '/imap/ssl}' . $folderName;
+            $address = '{' . $this->hostname . ':' . $this->port . '/imap/ssl}' . $folderName;
         } else {
-            $address = '{' . $this->host . ':' . $this->port . '/imap}' . $folderName;
+            $address = '{' . $this->hostname . ':' . $this->port . '/imap}' . $folderName;
         }
 
         $this->address = $address;
@@ -99,22 +142,30 @@ class Imap
     }
 
     /**
-     * Log into an IMAP server.
+     * Use this method to log into an IMAP server and whenever you need to log into a different account.
      *
-     * This method is called on the initialization of the class (see
-     * __construct()), and whenever you need to log into a different account.
-     *
-     * Please see __construct() for parameter info.
-     *
-     * @throws ImapException when IMAP can't connect.
+     * @param string $hostname
+     * @param string $username
+     * @param string $password
+     * @param int $port
+     * @param bool $ssl
+     * @param string $folder
+     * @throws ImapException
      */
-    public function changeLoginInfo($host, $user, $pass, $port, $ssl, $folder)
+    public function changeLoginInfo(
+        string $hostname,
+        string $username,
+        string $password,
+        int $port,
+        bool $ssl,
+        string $folder
+    )
     {
         if ($ssl) {
-            $baseAddress = '{' . $host . ':' . $port . '/imap/ssl}';
+            $baseAddress = '{' . $hostname . ':' . $port . '/imap/ssl}';
             $address = $baseAddress . $folder;
         } else {
-            $baseAddress = '{' . $host . ':' . $port . '/imap}';
+            $baseAddress = '{' . $hostname . ':' . $port . '/imap}';
             $address = $baseAddress . $folder;
         }
 
@@ -123,11 +174,27 @@ class Imap
         $this->address = $address;
 
         // Open new IMAP connection
-        if ($mailbox = imap_open($address, $user, $pass)) {
+        if ($mailbox = imap_open($address, $username, $password)) {
             $this->mailbox = $mailbox;
         } else {
             throw new ImapException("Error: " . imap_last_error());
         }
+    }
+
+    /**
+     * Get a mailbox.
+     *
+     * @param string|null $mailboxName
+     * @return Mailbox
+     * @throws ImapException
+     */
+    public function getMailbox(string $mailboxName = null):Mailbox
+    {
+        if (null !== $mailboxName) {
+            $this->changeFolder($mailboxName);
+        }
+
+        return new Mailbox($this);
     }
 
     /**
@@ -625,7 +692,7 @@ class Imap
      */
     private function reconnect()
     {
-        $this->mailbox = imap_open($this->address, $this->user, $this->pass);
+        $this->mailbox = imap_open($this->address, $this->username, $this->password);
         if (!$this->mailbox) {
             throw new ImapException("Reconnection Failure: " . imap_last_error());
         }
