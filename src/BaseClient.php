@@ -4,6 +4,7 @@ namespace bigpaulie\imap;
 
 
 use bigpaulie\imap\Exceptions\ImapException;
+use bigpaulie\imap\Message\Headers;
 use bigpaulie\imap\Message\Message;
 
 /**
