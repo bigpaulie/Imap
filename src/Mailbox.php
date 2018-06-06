@@ -38,6 +38,8 @@ class Mailbox implements MailboxInterface
     }
 
     /**
+     * Get messages.
+     *
      * @return MessageIterator
      * @throws ImapException
      */
@@ -60,7 +62,7 @@ class Mailbox implements MailboxInterface
      * @param string $mailbox
      * @return bool
      */
-    public function moveMessage(Message $message, string $mailbox)
+    public function moveMessage(Message $message, string $mailbox):bool
     {
         return $this->resource->moveMessage($message->getMessageId(), $mailbox);
     }
@@ -69,11 +71,10 @@ class Mailbox implements MailboxInterface
      * @param Message $message
      * @param string $mailbox
      * @return bool
-     * @throws ImapException
      */
-    public function copyMessage(Message $message, string $mailbox)
+    public function copyMessage(Message $message, string $mailbox):bool
     {
-        throw new ImapException('Method not yet implemented');
+        return $this->resource->copyMessage($message->getMessageId(), $mailbox);
     }
 
     /**

@@ -6,6 +6,7 @@ namespace bigpaulie\imap;
 use bigpaulie\imap\Exceptions\ImapException;
 use bigpaulie\imap\Message\Headers;
 use bigpaulie\imap\Message\Message;
+use bigpaulie\imap\Message\Search;
 
 /**
  * Class BaseClient
@@ -269,16 +270,35 @@ abstract class BaseClient
     }
 
     /**
+     * Copy message to another folder.
+     *
+     * @param int $messageId
+     * @param string $folder
+     * @return bool
+     */
+    public function copyMessage(int $messageId, string $folder):bool
+    {
+        $messageRange = $messageId . ':' . $messageId;
+        return imap_mail_copy($this->mailbox, $messageRange, $folder);
+    }
+
+    /**
      * Returns an associative array with email subjects and message ids for all
      * messages in the active $folder.
      *
+     * @param Search|null $search
      * @return array
      * @throws ImapException
      */
-    public function getMessageIds()
+    public function getMessageIds(Search $search = null)
     {
         $this->tickle();
-        return imap_sort($this->mailbox, SORTDATE, 1, SE_UID);
+        $query = null;
+
+        if (null == $search) {
+            $search = (new Search())->setCriteria(Search::CRITERIA_UNDELETED);
+        }
+        return imap_search($this->mailbox, $search, SE_UID);
     }
 
     /**
