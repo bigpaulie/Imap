@@ -52,8 +52,11 @@ class Mailbox implements MailboxInterface
 
         /** @var int[] $messageIds */
         $messageIds = $this->resource->getMessageIds($search);
-        foreach ($messageIds as $id) {
-            $messages[] = $this->resource->getMessage($id);
+
+        if (!empty($messageIds)) {
+            foreach ($messageIds as $id) {
+                $messages[] = $this->resource->getMessage($id);
+            }
         }
 
         return new MessageIterator($messages);
